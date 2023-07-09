@@ -7,5 +7,5 @@ Compress the notes provided by the user on the topic "{topic}" in {language} int
 '''.strip()
 
 WRITE = '''
-Write a markdown formatted {genre} in {language} on the topic "{topic}", that covers the entire content of the multiple notes seperated by horizontal rules provided by the user.
+Write a markdown formatted {genre} in {language} on the topic "{topic}", that covers the entire content of multiple notes (seperated by horizontal rules) provided by the user.
 '''.strip()

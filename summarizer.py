@@ -59,7 +59,8 @@ class Summarizer(aiapi.Model):
 
     @_trace
     def __call__(self, chunks=None):
-        self.logger.log('Start summarizing.')
+        self.logger.log('Start summarizing.',
+                        force=True)
         state = self.state['__call__']
 
         if not (chunks or state.chunks):  # chunks are empty
@@ -68,13 +69,17 @@ class Summarizer(aiapi.Model):
         if state.chunks:  # try to load from checkpoint
             pass
         else:
-            self.logger.log(f'Phase 0: Merging {len(chunks)} chunks of the original text.')
+            self.logger.log(
+                f'Phase 0: Merging {len(chunks)} chunks of the original text.',
+                force=True)
             state.chunks = self.merge(chunks)
             if len(state.chunks) == 1:  # the original text is short
-                self.logger.log('Returning the short original text.')
+                self.logger.log('Returning the short original text.',
+                                force=True)
                 return state.chunks[0]
 
-        self.logger.log(f'Phase 1: Extracting information in form of notes.')
+        self.logger.log(f'Phase 1: Extracting information in form of notes.',
+                        force=True)
 
         # try to load from checkpoint or extract information
         state.extracted = state.extracted or self.extract_information(state.chunks)
@@ -85,16 +90,21 @@ class Summarizer(aiapi.Model):
         if state.final_notes:  # try to load from checkpoint
             pass
         elif len(state.notes) > 1: # compress the notes
-            self.logger.log(f'Phase 2: Compressing the notes.')
+            self.logger.log(f'Phase 2: Compressing the notes.',
+                            force=True)
             state.final_notes = self.compress(state.notes)
         else:  # the notes are short
-            self.logger.log('Skipping Phase 2 (Compression).')
+            self.logger.log('Skipping Phase 2 (Compression).',
+                            force=True)
             state.final_notes = state.notes[0]
             
-        self.logger.log('Phase 3: Write the final text.')
+        self.logger.log('Phase 3: Write the final text.',
+                        force=True)
         
         final_text = self.write_final_text(state.final_notes)
         
+        self.logger.log('Finished summarizing.',
+                        force=True)
         # reset state
         state.chunks = None
         state.extracted = None
@@ -130,7 +140,8 @@ class Summarizer(aiapi.Model):
         state.merged.append(state.next_chunk)
 
         chunks = state.merged
-        self.logger.log(f'{len(state.chunks)} -> {len(chunks)} chunks')
+        self.logger.log(f'{len(state.chunks)} -> {len(chunks)} chunks',
+                        force=True)
 
         # reset state
         state.chunks = None
@@ -269,12 +280,12 @@ if __name__ == '__main__':
         state.chunks = state.extracted = state.notes = True
         summary = summarizer()
     else:
-        summarizer = Summarizer(model=args.model,
-                                n=args.choices,
-                                checkpoint=args.checkpoint,
-                                genre=args.genre,
-                                topic=args.topic,
-                                language=args.language,
+        summarizer = Summarizer(model=args.model or 'gpt-3.5-turbo',
+                                n=args.choices or 1,
+                                checkpoint=args.checkpoint or 'summarizer.pkl',
+                                genre=args.genre or 'detailed textbook',
+                                topic=args.topic or '[not specified]',
+                                language=args.language or 'English',
                                 verbose=args.verbose)
         with open(args.input, 'r') as f:
             if args.verbose:
