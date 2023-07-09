@@ -54,8 +54,7 @@ class Model:
                 messages=messages)
         except openai.OpenAIError as e:
             self.raise_error(e, **kwargs)
-        self.logger.log('Response:',
-                        f'model: {self.model}')
+        self.logger.log(f'Response: model: {self.model}')
         for i, choice in enumerate(response.choices):
             self.logger.log(f'choice[{i}]: {choice.message.role}:',
                             f'{choice.message.content}')

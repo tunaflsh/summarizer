@@ -14,8 +14,8 @@ class Summarizer(aiapi.Model):
                  model='gpt-3.5-turbo',
                  n=1,
                  checkpoint='summarizer.pkl',
-                 genre='textbook',
-                 topic='unknown',
+                 genre='detailed textbook',
+                 topic='[not specified]',
                  language='English',
                  **kwargs):
         super().__init__(model, checkpoint, **kwargs)
@@ -223,15 +223,15 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', type=str, required=True,
                         help='Path to the output file')
     parser.add_argument('-m', '--model', type=str,
-                        help=f'Model to use. Default: gpt-3.5-turbo.\nOptions: {", ".join(list(aiapi.TOKEN_LIMIT))}')
+                        help=f'Model to use. Default: gpt-3.5-turbo. Options: {", ".join(list(aiapi.TOKEN_LIMIT))}')
     parser.add_argument('-n', dest='choices', type=int,
                         help='Number of completion choices to generate for each input message. Default: 1')
     parser.add_argument('-c', '--checkpoint', type=str, default='summarizer.pkl',
                         help='Path to the checkpoint file. Default: summarizer.pkl')
     parser.add_argument('-g', '--genre', type=str,
-                        help='Genre of the text. Default: textbook. Examples: textbook, essay, novel, scientific paper, script, etc.')
+                        help='Genre of the text. Default: detailed textbook. Examples: textbook, essay, novel, scientific paper, script, etc.')
     parser.add_argument('-t', '--topic', type=str,
-                        help='Topic of the conversation. Default: unknown')
+                        help='Topic of the conversation. Default: [not specified]')
     parser.add_argument('-l', '--language', type=str,
                         help='Language of the conversation. Default: English')
     parser.add_argument('-v', '--verbose', action='store_true',
