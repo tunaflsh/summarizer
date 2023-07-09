@@ -1,11 +1,11 @@
-PHASE1 = '''
-Take Notes from the Text provided by the user on the topic "{topic}" in {language}. It should be structured using markdown and be densely packed with information so that the original text can be reconstructed from it.
-'''
+EXTRACT = '''
+Take notes from the text provided by the user on the topic "{topic}" in {language}. It should be structured using markdown and be densely packed with information so that the original text can be reconstructed from it.
+'''.strip()
 
-PHASE2A = '''
-Reconstruct the original text from the Notes provided by the user on the topic "{topic}" in {language}.
-'''
+COMPRESS = '''
+Compress the notes provided by the user on the topic "{topic}" in {language} into a shorter markdown formatted text. It should be lossless and contain all the information from the original notes.
+'''.strip()
 
-PHASE2B = '''
-Create a detailed technical Report in {language} on the topic "{topic}" using the information gathered in the Notes provided by the user.
-'''
+WRITE = '''
+Write a markdown formatted {genre} in {language} on the topic "{topic}", that covers the entire content of the multiple notes seperated by horizontal rules provided by the user.
+'''.strip()

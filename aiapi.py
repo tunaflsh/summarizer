@@ -25,7 +25,7 @@ class Logger:
     def log(self, *message, force=False):
         with open(self.log_file, 'a') as f:
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            for i, m in enumerate(message):
+            for i, m in enumerate([m for ms in message for m in ms.split('\n')]):
                 log_message = f'{current_time}: {m}\n' \
                                 if i == 0 else \
                                 f'{" " * len(current_time)}  {m}\n'
@@ -35,42 +35,49 @@ class Logger:
 
 
 class Model:
-    def __init__(self, model, checkpoint_path, **kwargs):
+    def __init__(self, model, checkpoint, **kwargs):
         self.model = model
         self.limit = TOKEN_LIMIT[model]
         self.tokenizer = tiktoken.encoding_for_model(model)
         self.logger = Logger(**kwargs)
-        self.checkpoint_path = checkpoint_path
+        self.checkpoint = checkpoint
     
-    def get_response(self, messages, **kwargs):
+    def get_response(self, messages, n=1, **kwargs):
         self.logger.log('Requesting:',
-                        *[f'{role}: {content}'
-                          for role, content in messages.items()])
-        self.logger.log('Waiting for response...')
+                        *[f'{message["role"]}: {message["content"]}'
+                          for message in messages])
+        self.logger.log('Awaiting response...')
         try:
             response = openai.ChatCompletion.create(
                 model=self.model,
+                n=n,
                 messages=messages)
         except openai.OpenAIError as e:
             self.raise_error(e, **kwargs)
         self.logger.log('Response:',
-                        f'model: {self.model}',
-                        f'{response.choices[0].message.assistant}'
-                        f': {response.choices[0].message.content}',
-                        f'finish_reason: {response.choices[0].finish_reason}',
-                        f'usage: {json.dumps(response.usage)}')
+                        f'model: {self.model}')
+        for i, choice in enumerate(response.choices):
+            self.logger.log(f'choice[{i}]: {choice.message.role}:',
+                            f'{choice.message.content}')
+            self.logger.log(f'choice[{i}]: finish_reason: '
+                            f'{choice.finish_reason}')
+        self.logger.log(f'usage: {json.dumps(response.usage)}')
         return response
     
-    def raise_error(self, e, **kwargs):
-        self.logger.log(e)
-        self.save_checkpoint(**kwargs)
+    def raise_error(self, e: ValueError, **kwargs):
+        self.logger.log(str(e))
+        self.save(**kwargs)
         raise e
 
-    def save_checkpoint(self, checkpoint_path=None):
-        with open(checkpoint_path or self.checkpoint_path, 'w') as f:
+    def save(self, checkpoint=None):
+        del self.tokenizer
+        with open(checkpoint or self.checkpoint, 'wb') as f:
             pickle.dump(self, f)
+        self.tokenizer = tiktoken.encoding_for_model(self.model)
     
     @classmethod
-    def load_checkpoint(cls, checkpoint_path):
-        with open(checkpoint_path, 'r') as f:
-            return pickle.load(f)
+    def load(cls, checkpoint):
+        with open(checkpoint, 'rb') as f:
+            model = pickle.load(f)
+        model.tokenizer = tiktoken.encoding_for_model(model.model)
+        return model
