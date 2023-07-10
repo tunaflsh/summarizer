@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import argparse
 import json
-from types import SimpleNamespace
 import re
+from types import SimpleNamespace
+
 import aiapi
 import prompt
 
@@ -10,13 +11,8 @@ import prompt
 class Summarizer(aiapi.Model):
     MARKDOWN_RULES = re.compile(r'\n\n *([-*_])( *\1){2,} *\n')
 
-    def __init__(self,
-                 model='gpt-3.5-turbo',
-                 n=1,
-                 checkpoint='summarizer.pkl',
-                 genre='detailed textbook',
-                 topic='[not specified]',
-                 language='English',
+    def __init__(self, model='gpt-3.5-turbo', n=1, checkpoint='summarizer.pkl',
+                 genre='detailed textbook', topic='[not specified]', language='English',
                  **kwargs):
         super().__init__(model, checkpoint, **kwargs)
         self.n = n
@@ -59,52 +55,42 @@ class Summarizer(aiapi.Model):
 
     @_trace
     def __call__(self, chunks=None):
-        self.logger.log('Start summarizing.',
-                        force=True)
+        self.log('Start summarizing.', force=True)
         state = self.state['__call__']
 
         if not (chunks or state.chunks):  # chunks are empty
             self.raise_error(ValueError('chunks are empty'))
         
-        if state.chunks:  # try to load from checkpoint
-            pass
-        else:
-            self.logger.log(
-                f'Phase 0: Merging {len(chunks)} chunks of the original text.',
-                force=True)
+        # Phase 0: Merge chunks of the original text
+        if not state.chunks:  # if not from checkpoint
+            self.log(f'Phase 0: Merging {len(chunks)} chunks of the original text.',
+                     force=True)
             state.chunks = self.merge(chunks)
-            if len(state.chunks) == 1:  # the original text is short
-                self.logger.log('Returning the short original text.',
-                                force=True)
-                return state.chunks[0]
+        if len(state.chunks) == 1:  # the original text is short
+            self.log('Returning the short original text.', force=True)
+            return state.chunks[0]
 
-        self.logger.log(f'Phase 1: Extracting information in form of notes.',
-                        force=True)
+        # Phase 1: Extract information in form of notes
+        self.log(f'Phase 1: Extracting information in form of notes.', force=True)
+        if not state.extracted:  # if not from checkpoint
+            state.extracted = self.extract_information(state.chunks)
+        if not state.notes:  # if not from checkpoint
+            state.notes = self.merge(state.extracted, delimiter='\n\n---\n\n')
 
-        # try to load from checkpoint or extract information
-        state.extracted = state.extracted or self.extract_information(state.chunks)
-        # try to load from checkpoint or merge notes
-        state.notes = state.notes \
-            or self.merge(state.extracted, delimiter='\n\n---\n\n')
+        # Phase 2: Compress the notes
+        if not state.final_notes:  # if not from checkpoint
+            if len(state.notes) > 1: # compress the notes
+                self.log(f'Phase 2: Compressing the notes.', force=True)
+                state.final_notes = self.compress(state.notes)
+            else:  # the notes are short
+                self.log('Skipping Phase 2 (Compression).', force=True)
+                state.final_notes = state.notes[0]
 
-        if state.final_notes:  # try to load from checkpoint
-            pass
-        elif len(state.notes) > 1: # compress the notes
-            self.logger.log(f'Phase 2: Compressing the notes.',
-                            force=True)
-            state.final_notes = self.compress(state.notes)
-        else:  # the notes are short
-            self.logger.log('Skipping Phase 2 (Compression).',
-                            force=True)
-            state.final_notes = state.notes[0]
-            
-        self.logger.log('Phase 3: Write the final text.',
-                        force=True)
-        
+        # Phase 3: Write the final text
+        self.log('Phase 3: Write the final text.', force=True)
         final_text = self.write_final_text(state.final_notes)
         
-        self.logger.log('Finished summarizing.',
-                        force=True)
+        self.log('Finished summarizing.', force=True)
         # reset state
         state.chunks = None
         state.extracted = None
@@ -116,8 +102,9 @@ class Summarizer(aiapi.Model):
         state = self.state['merge']
         # try to load from checkpoint
         state.chunks = state.chunks or chunks
-        state.delimiter = delimiter if state.delimiter is None else state.delimiter
-        self.logger.log(f'Merging {len(state.chunks)} chunks.')
+        if state.delimiter is None:
+            state.delimiter = delimiter
+        self.log(f'Merging {len(state.chunks)} chunks.')
 
         if not state.chunks:  # chunks are empty
             self.raise_error(ValueError('chunks are empty'))
@@ -140,8 +127,7 @@ class Summarizer(aiapi.Model):
         state.merged.append(state.next_chunk)
 
         chunks = state.merged
-        self.logger.log(f'{len(state.chunks)} -> {len(chunks)} chunks',
-                        force=True)
+        self.log(f'{len(state.chunks)} -> {len(chunks)} chunks', force=True)
 
         # reset state
         state.chunks = None
@@ -165,7 +151,7 @@ class Summarizer(aiapi.Model):
             {'role': 'user'}
         ]
         for state.i in range(state.i, len(state.chunks)):
-            self.logger.log(f'extract chunk {state.i+1}/{len(state.chunks)}:')
+            self.log(f'extract chunk {state.i+1}/{len(state.chunks)}:')
             messages[-1]['content'] = state.chunks[state.i]
             response = self.get_response(messages).choices[0].message.content
             response = self.MARKDOWN_RULES.sub('\n\n\n', response)
@@ -185,10 +171,11 @@ class Summarizer(aiapi.Model):
         state.notes = state.notes or notes  # try to load from checkpoint
 
         while len(state.notes) > 1:
-            self.logger.log(f'Compressing {len(state.notes)} chunks.')
+            self.log(f'Compressing {len(state.notes)} chunks.')
             # try to load from checkpoint or compress notes
-            state.compressed = state.compressed \
-                or self.extract_information(state.notes, compress=True)
+            if not state.compressed:
+                state.compressed = self.extract_information(state.notes,
+                                                            compress=True)
             # try to load from checkpoint or merge notes
             state.notes = self.merge(state.compressed, delimiter='\n\n---\n\n')
             # reset state
@@ -237,7 +224,7 @@ if __name__ == '__main__':
                         help=f'Model to use. Default: gpt-3.5-turbo. Options: {", ".join(list(aiapi.TOKEN_LIMIT))}')
     parser.add_argument('-n', dest='choices', type=int,
                         help='Number of completion choices to generate for each input message. Default: 1')
-    parser.add_argument('-c', '--checkpoint', type=str, default='summarizer.pkl',
+    parser.add_argument('-c', '--checkpoint', type=str,
                         help='Path to the checkpoint file. Default: summarizer.pkl')
     parser.add_argument('-g', '--genre', type=str,
                         help='Genre of the text. Default: detailed textbook. Examples: textbook, essay, novel, scientific paper, script, etc.')
@@ -251,9 +238,9 @@ if __name__ == '__main__':
                         help='Load the checkpoint file. Default: False')
     parser.add_argument('--rewrite', action='store_true',
                         help='Rewrite the the final text from the checkpoint. Default: False')
-
     args = parser.parse_args()
 
+    # load checkpoint
     if args.load:
         if args.verbose:
             print(f'Loading checkpoint from {args.checkpoint}.')
@@ -265,6 +252,8 @@ if __name__ == '__main__':
         summarizer.topic = args.topic or summarizer.topic
         summarizer.language = args.language or summarizer.language
         summary = summarizer()
+
+    # rewrite final text
     elif args.rewrite:
         if args.verbose:
             print(f'Loading checkpoint from {args.checkpoint}.')
@@ -275,10 +264,11 @@ if __name__ == '__main__':
         summarizer.genre = args.genre or summarizer.genre
         summarizer.topic = args.topic or summarizer.topic
         summarizer.language = args.language or summarizer.language
-        summarizer.stack_trace = []
-        state = summarizer.state['__call__']
-        state.chunks = state.extracted = state.notes = True
-        summary = summarizer()
+        summarizer.log(f'Rewriting final text.', force=True)
+        summary = summarizer.write_final_text(
+            summarizer.state['__call__'].final_notes)
+    
+    # generate summary
     else:
         summarizer = Summarizer(model=args.model or 'gpt-3.5-turbo',
                                 n=args.choices or 1,
@@ -294,6 +284,7 @@ if __name__ == '__main__':
         chunks = [segment['text'] for segment in transcript['segments']]
         summary = summarizer(chunks)
     
+    # save summary
     with open(args.output, 'w') as f:
         if args.verbose:
             print(f'Saving summary to {args.output}.')

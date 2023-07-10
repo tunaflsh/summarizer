@@ -23,30 +23,34 @@ class Logger:
         self.verbose = verbose
 
     def log(self, *message, force=False):
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_messages = [
+            f'{current_time}: {m}\n'
+                if i == 0 else
+                f'{" " * len(current_time)}  {m}\n'
+            for i, m in enumerate([m for ms in message for m in ms.split('\n')])
+        ]
         with open(self.log_file, 'a') as f:
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            for i, m in enumerate([m for ms in message for m in ms.split('\n')]):
-                log_message = f'{current_time}: {m}\n' \
-                                if i == 0 else \
-                                f'{" " * len(current_time)}  {m}\n'
+            for log_message in log_messages:
                 f.write(log_message)
-                if force or self.verbose:
-                    print(log_message, end='')
+        if force or self.verbose:
+            for log_message in log_messages:
+                print(log_message, end='')
 
 
-class Model:
+class Model(Logger):
     def __init__(self, model, checkpoint, **kwargs):
+        super().__init__(**kwargs)
         self.model = model
         self.limit = TOKEN_LIMIT[model]
         self.tokenizer = tiktoken.encoding_for_model(model)
-        self.logger = Logger(**kwargs)
         self.checkpoint = checkpoint
     
     def get_response(self, messages, n=1, **kwargs):
-        self.logger.log('Requesting:',
-                        *[f'{message["role"]}: {message["content"]}'
-                          for message in messages])
-        self.logger.log('Awaiting response...')
+        self.log('Requesting:',
+                 *[f'{message["role"]}: {message["content"]}'
+                   for message in messages])
+        self.log('Awaiting response...')
         try:
             response = openai.ChatCompletion.create(
                 model=self.model,
@@ -54,17 +58,17 @@ class Model:
                 messages=messages)
         except openai.OpenAIError as e:
             self.raise_error(e, **kwargs)
-        self.logger.log(f'Response: model: {self.model}')
+        self.log(f'Response: model: {self.model}')
         for i, choice in enumerate(response.choices):
-            self.logger.log(f'choice[{i}]: {choice.message.role}:',
-                            f'{choice.message.content}')
-            self.logger.log(f'choice[{i}]: finish_reason: '
-                            f'{choice.finish_reason}')
-        self.logger.log(f'usage: {json.dumps(response.usage)}')
+            self.log(f'choice[{i}]: {choice.message.role}:',
+                     f'{choice.message.content}')
+            self.log(f'choice[{i}]: finish_reason: '
+                     f'{choice.finish_reason}')
+        self.log(f'usage: {json.dumps(response.usage)}')
         return response
     
     def raise_error(self, e: ValueError, **kwargs):
-        self.logger.log(str(e))
+        self.log(str(e))
         self.save(**kwargs)
         raise e
 
