@@ -4,11 +4,11 @@ import json
 import re
 from types import SimpleNamespace
 
-import model
+from model import Model, TOKEN_LIMIT
 import prompt
 
 
-class Summarizer(model.Model):
+class Summarizer(Model):
     MARKDOWN_RULES = re.compile(r'\n\n *([-*_])( *\1){2,} *\n')
 
     def __init__(self, model='gpt-3.5-turbo', n=1, checkpoint='summarizer.pkl',
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', type=str, required=True,
                         help='Path to the output file')
     parser.add_argument('-m', '--model', type=str,
-                        help=f'Model to use. Default: gpt-3.5-turbo. Options: {", ".join(list(model.TOKEN_LIMIT))}')
+                        help=f'Model to use. Default: gpt-3.5-turbo. Options: {", ".join(list(TOKEN_LIMIT))}')
     parser.add_argument('-n', dest='choices', type=int,
                         help='Number of completion choices to generate for each input message. Default: 1')
     parser.add_argument('-c', '--checkpoint', type=str,
