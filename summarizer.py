@@ -16,9 +16,10 @@ class Summarizer(Model):
                  **kwargs):
         super().__init__(model, checkpoint, **kwargs)
         self.n = n
-        self.genre = genre
-        self.topic = topic
-        self.language = language
+        self.prompt = SimpleNamespace(
+            extract=prompt.EXTRACT.format(topic=topic, language=language),
+            compress=prompt.COMPRESS.format(topic=topic, language=language),
+            write=prompt.WRITE.format(genre=genre, topic=topic, language=language))
         self.state = {
             '__call__': SimpleNamespace(
                 chunks=None,
@@ -134,9 +135,8 @@ class Summarizer(Model):
         state.compress = state.compress if state.compress is not None else compress
 
         messages = [
-            {'role': 'system', 'content': (
-                prompt.COMPRESS if state.compress else prompt.EXTRACT
-                ).format(topic=self.topic, language=self.language)},
+            {'role': 'system', 'content': self.prompt.extract
+                if not state.compress else self.prompt.compress},
             {'role': 'user'}
         ]
         for state.i in range(state.i, len(state.chunks)):
@@ -183,14 +183,9 @@ class Summarizer(Model):
         state.final_notes = state.final_notes or final_notes
 
         messages = [
-            {'role': 'system', 'content':
-                prompt.WRITE.format(
-                    genre=self.genre,
-                    topic=self.topic,
-                    language=self.language)},
-            {'role': 'user', 'content':
-                state.final_notes
-                + '\n\nFinal Text.md:'},
+            {'role': 'system', 'content': self.prompt.write},
+            {'role': 'user', 'content': state.final_notes
+                                        + '\n\nFinal Text.md:'},
         ]
         response = self.get_response(messages, n=self.n)
         # longest choice & finish_reason=='stop'
