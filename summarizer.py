@@ -4,7 +4,7 @@ import json
 import re
 from types import SimpleNamespace
 
-from model import Model, TOKEN_LIMIT
+from model import Model, TOKEN_LIMIT, trace
 import prompt
 
 
@@ -41,19 +41,8 @@ class Summarizer(Model):
             'write_final_text': SimpleNamespace(
                 final_notes=None)
         }
-        self.stack_trace = []
 
-    @staticmethod
-    def _trace(func):
-        def wrapper(self, *args, **kwargs):
-            self.stack_trace.append(func.__name__)
-            result = func(self, *args, **kwargs)
-            self.stack_trace.pop()
-            self.save()
-            return result
-        return wrapper
-
-    @_trace
+    @trace
     def __call__(self, chunks=None):
         self.log('Start summarizing.', force=True)
         state = self.state['__call__']
@@ -97,7 +86,7 @@ class Summarizer(Model):
         state.notes = None
         return final_text
 
-    @_trace
+    @trace
     def merge(self, chunks=None, delimiter=''):
         state = self.state['merge']
         # try to load from checkpoint
@@ -137,7 +126,7 @@ class Summarizer(Model):
         state.i = 0
         return chunks
     
-    @_trace
+    @trace
     def extract_information(self, chunks=None, compress=False):
         state = self.state['extract_information']
         # try to load from checkpoint
@@ -165,7 +154,7 @@ class Summarizer(Model):
         state.i = 0
         return chunks
 
-    @_trace
+    @trace
     def compress(self, notes=None):
         state = self.state['compress']
         state.notes = state.notes or notes  # try to load from checkpoint
@@ -188,7 +177,7 @@ class Summarizer(Model):
         state.compressed = None
         return notes
 
-    @_trace
+    @trace
     def write_final_text(self, final_notes=None):
         state = self.state['write_final_text']
         state.final_notes = state.final_notes or final_notes

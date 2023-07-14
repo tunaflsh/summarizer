@@ -17,6 +17,16 @@ TOKEN_LIMIT = {
 }
 
 
+def trace(func):
+    def wrapper(self, *args, **kwargs):
+        self.stack_trace.append(func.__name__)
+        result = func(self, *args, **kwargs)
+        self.stack_trace.pop()
+        self.save()
+        return result
+    return wrapper
+
+
 class Logger:
     def __init__(self, log_file='./logs/{day}.log', verbose=False):
         self.log_file = log_file.format(day=datetime.now().strftime("%Y-%m-%d"))
@@ -45,6 +55,7 @@ class Model(Logger):
         self.limit = TOKEN_LIMIT[model]
         self.tokenizer = tiktoken.encoding_for_model(model)
         self.checkpoint = checkpoint
+        self.stack_trace = []
     
     def get_response(self, messages, n=1, **kwargs):
         self.log('Requesting:',
