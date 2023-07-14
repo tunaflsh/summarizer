@@ -9,3 +9,7 @@ Compress the notes provided by the user on the topic "{topic}" in {language} int
 WRITE = '''
 Write a markdown formatted {genre} in {language} on the topic "{topic}", that covers the entire content of multiple notes (seperated by horizontal rules) provided by the user.
 '''.strip()
+
+TRANSLATE = '''
+Translate the text file provided by the user from {source_language} to {target_language}.
+'''.strip()
