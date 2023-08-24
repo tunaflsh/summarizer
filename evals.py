@@ -2,9 +2,9 @@ import prompt
 import summarizer
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Create a summarizer model.
-    model = summarizer.Summarizer('gpt-3.5-turbo')
+    model = summarizer.Summarizer("gpt-3.5-turbo")
 
     # Create a prompt.
     prompt = prompt.Prompt()
