@@ -299,6 +299,7 @@ if __name__ == "__main__":
             genre=args.genre or "detailed textbook",
             topic=args.topic or "[not specified]",
             language=args.language or "English",
+            user_notes=args.user_notes or "",
             verbose=args.verbose,
         )
         with open(args.input, "r") as f:
