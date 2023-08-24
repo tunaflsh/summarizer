@@ -19,6 +19,7 @@ class Summarizer(Model):
         genre="detailed textbook",
         topic="[not specified]",
         language="English",
+        user_notes="",
         **kwargs,
     ):
         super().__init__(model, checkpoint, **kwargs)
@@ -27,6 +28,7 @@ class Summarizer(Model):
             extract=prompt.EXTRACT.format(topic=topic, language=language),
             compress=prompt.COMPRESS.format(topic=topic, language=language),
             write=prompt.WRITE.format(genre=genre, topic=topic, language=language),
+            user_notes=prompt.USER_NOTES.format(notes=user_notes) if user_notes else "",
         )
         self.state = {
             "__call__": SimpleNamespace(
@@ -140,9 +142,11 @@ class Summarizer(Model):
         messages = [
             {
                 "role": "system",
-                "content": self.prompt.extract
-                if not state.compress
-                else self.prompt.compress,
+                "content": (
+                    self.prompt.extract + "\n\n" + self.prompt.user_notes
+                    if not state.compress
+                    else self.prompt.compress
+                ).strip(),
             },
             {"role": "user"},
         ]
@@ -232,7 +236,7 @@ if __name__ == "__main__":
         "-g",
         "--genre",
         type=str,
-        help="Genre of the text. Default: detailed textbook. Examples: textbook, essay, novel, scientific paper, script, etc.",
+        help="Genre of the text. Default: post. Examples: post, (detailed) textbook, essay, novel, scientific paper, script, etc.",
     )
     parser.add_argument(
         "-t",
@@ -245,6 +249,11 @@ if __name__ == "__main__":
         "--language",
         type=str,
         help="Language of the conversation. Default: English",
+    )
+    parser.add_argument(
+        "--user-notes",
+        type=str,
+        help="Something the model should keep in mind. Optional",
     )
     parser.add_argument(
         "-v",

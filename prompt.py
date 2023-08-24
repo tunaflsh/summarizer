@@ -13,3 +13,7 @@ Write a markdown formatted {genre} in {language} on the topic "{topic}", that co
 TRANSLATE = """
 Translate the text file provided by the user from {source_language} to {target_language}.
 """.strip()
+
+USER_NOTES = """
+Keep in mind: {notes}
+""".strip()
