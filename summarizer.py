@@ -207,6 +207,10 @@ class Summarizer(Model):
         state.final_notes = None
         return best_choice.message.content
 
+    @classmethod
+    def load(cls, checkpoint) -> "Summarizer":
+        return super().load(checkpoint)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -276,12 +280,6 @@ if __name__ == "__main__":
         if args.verbose:
             print(f"Loading checkpoint from {args.checkpoint}.")
         summarizer = Summarizer.load(args.checkpoint)
-        # override arguments
-        summarizer.model = args.model or summarizer.model
-        summarizer.choices = args.choices or summarizer.choices
-        summarizer.genre = args.genre or summarizer.genre
-        summarizer.topic = args.topic or summarizer.topic
-        summarizer.language = args.language or summarizer.language
         summary = summarizer()
 
     # rewrite final text
@@ -289,12 +287,6 @@ if __name__ == "__main__":
         if args.verbose:
             print(f"Loading checkpoint from {args.checkpoint}.")
         summarizer = Summarizer.load(args.checkpoint)
-        # override arguments
-        summarizer.model = args.model or summarizer.model
-        summarizer.choices = args.choices or summarizer.choices
-        summarizer.genre = args.genre or summarizer.genre
-        summarizer.topic = args.topic or summarizer.topic
-        summarizer.language = args.language or summarizer.language
         summarizer.log("Rewriting final text.", force=True)
         summary = summarizer.write_final_text(summarizer.state["__call__"].final_notes)
 

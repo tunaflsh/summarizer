@@ -89,7 +89,7 @@ class Model(Logger):
         self.tokenizer = tiktoken.encoding_for_model(self.model)
 
     @classmethod
-    def load(cls, checkpoint):
+    def load(cls, checkpoint) -> "Model":
         with open(checkpoint, "rb") as f:
             model = pickle.load(f)
         model.tokenizer = tiktoken.encoding_for_model(model.model)
