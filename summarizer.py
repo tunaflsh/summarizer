@@ -14,7 +14,7 @@ class Summarizer(Model):
     def __init__(
         self,
         model="gpt-3.5-turbo",
-        n=1,
+        num_choices=1,
         checkpoint="summarizer.pkl",
         genre="detailed textbook",
         topic="[not specified]",
@@ -23,13 +23,11 @@ class Summarizer(Model):
         **kwargs,
     ):
         super().__init__(model, checkpoint, **kwargs)
-        self.n = n
-        self.prompt = SimpleNamespace(
-            extract=prompt.EXTRACT.format(topic=topic, language=language),
-            compress=prompt.COMPRESS.format(topic=topic, language=language),
-            write=prompt.WRITE.format(genre=genre, topic=topic, language=language),
-            user_notes=prompt.USER_NOTES.format(notes=user_notes) if user_notes else "",
-        )
+        self.num_choices = num_choices
+        self.genre = genre
+        self.topic = topic
+        self.language = language
+        self.user_notes = user_notes
         self.state = {
             "__call__": SimpleNamespace(
                 chunks=None, extracted=None, notes=None, final_notes=None
@@ -143,10 +141,17 @@ class Summarizer(Model):
             {
                 "role": "system",
                 "content": (
-                    self.prompt.extract + "\n\n" + self.prompt.user_notes
+                    prompt.EXTRACT.format(topic=self.topic, language=self.language)
+                    + (
+                        "\n\n" + prompt.USER_NOTES.format(notes=self.user_notes)
+                        if self.user_notes
+                        else ""
+                    )
                     if not state.compress
-                    else self.prompt.compress
-                ).strip(),
+                    else prompt.COMPRESS.format(
+                        topic=self.topic, language=self.language
+                    )
+                ),
             },
             {"role": "user"},
         ]
@@ -193,10 +198,15 @@ class Summarizer(Model):
         state.final_notes = state.final_notes or final_notes
 
         messages = [
-            {"role": "system", "content": self.prompt.write},
+            {
+                "role": "system",
+                "content": prompt.WRITE.format(
+                    genre=self.genre, topic=self.topic, language=self.language
+                ),
+            },
             {"role": "user", "content": state.final_notes + "\n\nFinal Text.md:"},
         ]
-        response = self.get_response(messages, n=self.n)
+        response = self.get_response(messages, num_choices=self.num_choices)
         # longest choice & finish_reason=='stop'
         best_choice = max(
             response.choices,
@@ -226,14 +236,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-n",
-        dest="choices",
+        dest="num_choices",
         type=int,
-        help="Number of completion choices to generate for each input message. Default: 1",
+        help="Number of completion choices to generate for each input message. The longest complete response will be chosen. Default: 1",
     )
     parser.add_argument(
         "-c",
         "--checkpoint",
         type=str,
+        default="summarizer.pkl",
         help="Path to the checkpoint file. Default: summarizer.pkl",
     )
     parser.add_argument(
@@ -288,13 +299,16 @@ if __name__ == "__main__":
             print(f"Loading checkpoint from {args.checkpoint}.")
         summarizer = Summarizer.load(args.checkpoint)
         summarizer.log("Rewriting final text.", force=True)
+        # update number of choices n and genre
+        summarizer.num_choices = args.num_choices or summarizer.num_choices
+        summarizer.genre = args.genre or summarizer.genre
         summary = summarizer.write_final_text(summarizer.state["__call__"].final_notes)
 
     # generate summary
     else:
         summarizer = Summarizer(
             model=args.model or "gpt-3.5-turbo",
-            n=args.choices or 1,
+            num_choices=args.num_choices or 1,
             checkpoint=args.checkpoint or "summarizer.pkl",
             genre=args.genre or "detailed textbook",
             topic=args.topic or "[not specified]",

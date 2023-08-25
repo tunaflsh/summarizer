@@ -56,7 +56,7 @@ class Model(Logger):
         self.checkpoint = checkpoint
         self.stack_trace = []
 
-    def get_response(self, messages, n=1, **kwargs):
+    def get_response(self, messages, num_choices=1, **kwargs):
         self.log(
             "Requesting:",
             *[f'{message["role"]}: {message["content"]}' for message in messages],
@@ -64,7 +64,7 @@ class Model(Logger):
         self.log("Awaiting response...")
         try:
             response = openai.ChatCompletion.create(
-                model=self.model, n=n, messages=messages
+                model=self.model, n=num_choices, messages=messages
             )
         except openai.OpenAIError as e:
             self.raise_error(e, **kwargs)
