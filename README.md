@@ -41,7 +41,7 @@ options:
 
 ### Rewriting Final Summary
 
-Since the intermediate summaries are notes and only the last summary is a coherent text, the genre or style is only applied to that last stage. The final summary can be rewriten with the same notes from intermediate summaries. The options `-n` and `--genre` can be modified in this mode:
+Since the intermediate summaries are notes and only the last summary is a coherent text, the genre or style is only applied to that last stage. The final summary can be rewritten with the same notes from intermediate summaries. The options `-n` and `--genre` can be modified in this mode:
 ```
 python summarizer.py -o OUTPUT [-n NUM_CHOICES] [-g GENRE] [--checkpoint CHECKPOINT] --rewrite
 ```
