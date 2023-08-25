@@ -19,7 +19,7 @@ class Summarizer(Model):
         genre="detailed textbook",
         topic="[not specified]",
         language="English",
-        user_notes="",
+        context="",
         **kwargs,
     ):
         super().__init__(model, checkpoint, **kwargs)
@@ -27,7 +27,7 @@ class Summarizer(Model):
         self.genre = genre
         self.topic = topic
         self.language = language
-        self.user_notes = user_notes
+        self.context = context
         self.state = {
             "__call__": SimpleNamespace(
                 chunks=None, extracted=None, notes=None, final_notes=None
@@ -143,8 +143,8 @@ class Summarizer(Model):
                 "content": (
                     prompt.EXTRACT.format(topic=self.topic, language=self.language)
                     + (
-                        "\n\n" + prompt.USER_NOTES.format(notes=self.user_notes)
-                        if self.user_notes
+                        "\n\n" + prompt.CONTEXT.format(context=self.context)
+                        if self.context
                         else ""
                     )
                     if not state.compress
@@ -223,7 +223,9 @@ class Summarizer(Model):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Summarizes long texts recursively with OpenAI API."
+    )
     parser.add_argument("-i", "--input", type=str, help="Path to the input file")
     parser.add_argument(
         "-o", "--output", type=str, required=True, help="Path to the output file"
@@ -238,35 +240,29 @@ if __name__ == "__main__":
         "-n",
         dest="num_choices",
         type=int,
-        help="Number of completion choices to generate for each input message. The longest complete response will be chosen. Default: 1",
-    )
-    parser.add_argument(
-        "-c",
-        "--checkpoint",
-        type=str,
-        default="summarizer.pkl",
-        help="Path to the checkpoint file. Default: summarizer.pkl",
+        help="Number of times the final text will be generated. The longest complete text will be chosen. Default: 1",
     )
     parser.add_argument(
         "-g",
         "--genre",
         type=str,
-        help="Genre of the text. Default: post. Examples: post, (detailed) textbook, essay, novel, scientific paper, script, etc.",
+        help="Genre or style of the text. Default: post. Examples: post, (detailed) textbook, essay, novel, scientific paper, script, etc.",
     )
     parser.add_argument(
         "-t",
         "--topic",
         type=str,
-        help="Topic of the conversation. Default: [not specified]",
+        help="Topic of the text. Default: [not specified]",
     )
     parser.add_argument(
         "-l",
         "--language",
         type=str,
-        help="Language of the conversation. Default: English",
+        help="Language of the text. Default: English",
     )
     parser.add_argument(
-        "--user-notes",
+        "-c",
+        "--context",
         type=str,
         help="Something the model should keep in mind. Optional",
     )
@@ -275,6 +271,12 @@ if __name__ == "__main__":
         "--verbose",
         action="store_true",
         help="Print the log to stdout. Default: False",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default="summarizer.pkl",
+        help="Path to the checkpoint file. Default: summarizer.pkl",
     )
     parser.add_argument(
         "--load", action="store_true", help="Load the checkpoint file. Default: False"
@@ -313,7 +315,7 @@ if __name__ == "__main__":
             genre=args.genre or "detailed textbook",
             topic=args.topic or "[not specified]",
             language=args.language or "English",
-            user_notes=args.user_notes or "",
+            context=args.context or "",
             verbose=args.verbose,
         )
         with open(args.input, "r") as f:

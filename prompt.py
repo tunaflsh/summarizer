@@ -14,6 +14,6 @@ TRANSLATE = """
 Translate the text file provided by the user from {source_language} to {target_language}.
 """.strip()
 
-USER_NOTES = """
-Keep in mind: {notes}
+CONTEXT = """
+Keep in mind: {context}
 """.strip()
