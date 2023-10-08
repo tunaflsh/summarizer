@@ -9,8 +9,10 @@ To prevent information losses from intermediate summaries, the model is instruct
 ## Usage
 
 ```
-python summarizer.py [-h] [-i INPUT] -o OUTPUT [-m MODEL] [-n NUM_CHOICES] [-g GENRE] [-t TOPIC] [-l LANGUAGE]
-                     [-c CONTEXT] [-v] [--checkpoint CHECKPOINT] [--load] [--rewrite]
+python summarizer.py [-h] [-i INPUT] [-o OUTPUT] [-d DIR] [-m MODEL] [-n NUM_CHOICES] [-g GENRE] [-t TOPIC]
+                     [-l LANGUAGE] [-c CONTEXT] [-v] [--checkpoint CHECKPOINT] [--load] [--rewrite]
+
+Summarizes long texts recursively with OpenAI API.
 
 options:
   -h, --help            show this help message and exit
@@ -18,6 +20,7 @@ options:
                         Path to the input file
   -o OUTPUT, --output OUTPUT
                         Path to the output file
+  -d DIR, --dir DIR     Path to the output directory. Use with -i if -o is not specified.
   -m MODEL, --model MODEL
                         Model to use. Default: gpt-3.5-turbo. Options: gpt-4, gpt-3.5-turbo-16k, gpt-3.5-turbo,
                         gpt-4-0613, gpt-4-0314, gpt-3.5-turbo-16k-0613, gpt-3.5-turbo-0613, gpt-3.5-turbo-0301
@@ -38,6 +41,18 @@ options:
   --load                Load the checkpoint file. Default: False
   --rewrite             Rewrite the the final text from the checkpoint. Default: False
 ```
+
+### Output Directory
+
+The summarizer now supports an optional argument `-d` to specify the output directory for the summary file. If this argument is provided, the summary file will be saved in the specified directory with the same name as the `input` file and a `.md` extension. If this argument is not provided, the `output` argument is required to specify the output file path.
+
+To use this argument, simply add `-d` followed by the path to the output directory when running the script. For example:
+
+```shell
+python summarizer.py -i input.json -d output/
+```
+
+This will save the final summary in `output/input.md`.
 
 ### Rewriting Final Summary
 

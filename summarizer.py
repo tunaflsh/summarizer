@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 import argparse
 import json
+import os
 import re
 from types import SimpleNamespace
 
-from model import Model, TOKEN_LIMIT, trace
 import prompt
+from model import TOKEN_LIMIT, Model, trace
 
 
 class Summarizer(Model):
@@ -227,9 +228,8 @@ if __name__ == "__main__":
         description="Summarizes long texts recursively with OpenAI API."
     )
     parser.add_argument("-i", "--input", type=str, help="Path to the input file")
-    parser.add_argument(
-        "-o", "--output", type=str, required=True, help="Path to the output file"
-    )
+    parser.add_argument("-o", "--output", type=str, help="Path to the output file")
+    parser.add_argument("-d", "--dir", type=str, help="Path to the output directory. Use with -i if -o is not specified.")
     parser.add_argument(
         "-m",
         "--model",
@@ -288,6 +288,21 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    if not (
+        (args.input and args.dir)
+        or (args.output and args.load)
+        or (args.output and args.rewrite)
+    ):
+        parser.error(
+            "Either [--input and --dir] or [--output and --load] or [--output and --rewrite] must be specified."
+        )
+
+    if args.output:
+        output = args.output
+    else:
+        input, ext = os.path.splitext(os.path.basename(args.input))
+        output = os.path.join(args.dir, input + ".md")
+
     # load checkpoint
     if args.load:
         if args.verbose:
@@ -326,9 +341,9 @@ if __name__ == "__main__":
         summary = summarizer(chunks)
 
     # save summary
-    with open(args.output, "w") as f:
+    with open(output, "w") as f:
         if args.verbose:
-            print(f"Saving summary to {args.output}.")
+            print(f"Saving summary to {output}.")
         f.write(summary)
 
     print("Summary:", summary, sep="\n")
